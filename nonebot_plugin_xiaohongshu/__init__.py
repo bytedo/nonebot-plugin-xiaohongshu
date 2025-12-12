@@ -16,6 +16,20 @@ from nonebot.exception import ActionFailed
 
 from .config import Config
 
+__plugin_meta__ = PluginMetadata(
+    name="小红书去水印解析",
+    description="基于 NoneBot2 的小红书去水印解析插件",
+    usage="直接在群聊或私聊中发送包含小红书链接的消息",
+    type="application",
+    homepage="https://github.com/bytedo/nonebot-plugin-xiaohongshu", 
+    config=Config,
+    supported_adapters={"~onebot.v11"},
+    extra={
+        "author": "bytedo", 
+        "version": "0.1.1",
+    }
+)
+
 try:
     _config_obj = get_driver().config
     _config_dict = _config_obj.model_dump() if hasattr(_config_obj, "model_dump") else _config_obj.dict()

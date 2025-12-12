@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nonebot-plugin-xiaohongshu"
-version = "0.1.0"
+version = "0.1.1"
 description = "一个用于解析小红书链接的 nonebot2 插件"
 authors = ["Your Name <your.email@example.com>"]
 license = "MIT"
