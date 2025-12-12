@@ -2,6 +2,7 @@ import httpx
 from typing import List, Optional, Dict, Any
 
 from nonebot import on_regex, get_driver, logger
+from nonebot.plugin import PluginMetadata
 from nonebot.typing import T_State
 from nonebot.adapters.onebot.v11 import (
     Bot, 
