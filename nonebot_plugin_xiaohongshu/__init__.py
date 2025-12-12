@@ -27,7 +27,7 @@ __plugin_meta__ = PluginMetadata(
     supported_adapters={"~onebot.v11"},
     extra={
         "author": "bytedo", 
-        "version": "0.1.1",
+        "version": "0.1.2",
     }
 )
 

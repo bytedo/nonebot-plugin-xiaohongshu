@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "nonebot-plugin-xiaohongshu"
-version = "0.1.1"
+version = "0.1.2"
 description = "一个用于解析小红书链接的 nonebot2 插件"
-authors = ["Your Name <your.email@example.com>"]
+authors = ["bytedo <49683326+bytedo@users.noreply.github.com>"]
 license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/bytedo/nonebot-plugin-xiaohongshu"
