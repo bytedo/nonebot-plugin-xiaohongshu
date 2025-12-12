@@ -27,9 +27,3 @@ pydantic = ">=1.10.0"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
-
-[tool.nonebot]
-plugins = ["nonebot_plugin_xiaohongshu"]
-adapters = [
-    { name = "OneBot V11", module = "nonebot.adapters.onebot.v11" }
-]
