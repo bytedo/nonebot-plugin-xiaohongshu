@@ -1,7 +1,7 @@
 import httpx
 from typing import List, Optional, Dict, Any
 
-from nonebot import on_regex, get_driver, logger
+from nonebot import on_regex, logger, get_plugin_config
 from nonebot.plugin import PluginMetadata
 from nonebot.typing import T_State
 from nonebot.adapters.onebot.v11 import (
@@ -25,19 +25,9 @@ __plugin_meta__ = PluginMetadata(
     homepage="https://github.com/bytedo/nonebot-plugin-xiaohongshu", 
     config=Config,
     supported_adapters={"~onebot.v11"},
-    extra={
-        "author": "bytedo", 
-        "version": "0.1.2",
-    }
 )
 
-try:
-    _config_obj = get_driver().config
-    _config_dict = _config_obj.model_dump() if hasattr(_config_obj, "model_dump") else _config_obj.dict()
-    plugin_config = Config.parse_obj(_config_dict)
-except Exception as e:
-    logger.warning(f"配置加载兼容性处理中: {e}")
-    plugin_config = Config()
+plugin_config = get_plugin_config(Config)
 
 XHS_REGEX = r"(https?://(?:xhslink\.com|www\.xiaohongshu\.com)/[a-zA-Z0-9/_]+)"
 
@@ -45,7 +35,6 @@ xhs_matcher = on_regex(XHS_REGEX, priority=10, block=False)
 
 @xhs_matcher.handle()
 async def handle_xhs(bot: Bot, event: Event, state: T_State, url: str = RegexStr()):
-
     origin_url = url.split('?')[0]
     
     try:
@@ -53,14 +42,12 @@ async def handle_xhs(bot: Bot, event: Event, state: T_State, url: str = RegexStr
         note_data = await get_note_data(origin_url)
         
         if not note_data:
-
             await xhs_matcher.finish("解析失败：接口返回为空或文章已被删除。")
 
         title = note_data.get("title", "无标题")
-        
-        # 标题单独发送，不合并进后续的消息/转发卡片中
         await xhs_matcher.send(Message(f"【{title}】"))
 
+        # 收集所有的媒体片段 (图片+视频)
         media_segments = []
         
         # 处理视频
@@ -75,13 +62,11 @@ async def handle_xhs(bot: Bot, event: Event, state: T_State, url: str = RegexStr
             for img_url in images:
                 media_segments.append(MessageSegment.image(img_url))
         elif not media_segments and note_data.get("cover"):
-            # 封面兜底
              media_segments.append(MessageSegment.image(note_data.get("cover")))
 
         if not media_segments:
              await xhs_matcher.finish("解析成功，但未找到可发送的图片或视频。")
 
-        # 发送逻辑
         if len(media_segments) > 3:
             await send_forward_msg_media_only(bot, event, media_segments)
         else:
@@ -95,30 +80,21 @@ async def handle_xhs(bot: Bot, event: Event, state: T_State, url: str = RegexStr
 
 
 async def send_normal_msg_media_only(segments: List[MessageSegment]):
-    """
-    普通发送模式：
-    图片打包发送，视频单独发送
-    """
+    """普通发送模式"""
     img_segs = [seg for seg in segments if seg.type == "image"]
     video_segs = [seg for seg in segments if seg.type == "video"]
 
-    # 图片打包发送避免刷屏
     if img_segs:
         await xhs_matcher.send(Message(img_segs))
     
-    # 视频单独发送
     for video in video_segs:
         await xhs_matcher.send(Message(video))
 
 
 async def send_forward_msg_media_only(bot: Bot, event: Event, segments: List[MessageSegment]):
-    """
-    合并转发模式（仅媒体）：
-    标题不在里面，只有图片和视频
-    """
+    """合并转发模式"""
     nodes = []
     
-    #不再添加标题节点，直接添加媒体节点
     for seg in segments:
         nodes.append(
             MessageSegment.node_custom(
@@ -128,28 +104,16 @@ async def send_forward_msg_media_only(bot: Bot, event: Event, segments: List[Mes
             )
         )
 
-    # 根据群聊/私聊调用不同API
     if isinstance(event, GroupMessageEvent):
-        await bot.call_api(
-            "send_group_forward_msg",
-            group_id=event.group_id,
-            messages=nodes
-        )
+        await bot.call_api("send_group_forward_msg", group_id=event.group_id, messages=nodes)
     elif isinstance(event, PrivateMessageEvent):
-        await bot.call_api(
-            "send_private_forward_msg",
-            user_id=event.user_id,
-            messages=nodes
-        )
+        await bot.call_api("send_private_forward_msg", user_id=event.user_id, messages=nodes)
     else:
-        # 其他类型回退到普通发送
         await send_normal_msg_media_only(segments)
 
 
 async def get_note_data(url: str) -> Optional[Dict[str, Any]]:
-    """
-    请求 API 获取数据
-    """
+    """请求 API 获取数据"""
     api_url = plugin_config.xhs_api_url
     params = {"url": url}
     headers = {
@@ -159,7 +123,6 @@ async def get_note_data(url: str) -> Optional[Dict[str, Any]]:
     async with httpx.AsyncClient(timeout=30.0) as client:
         try:
             resp = await client.get(api_url, params=params, headers=headers)
-            
             if resp.status_code == 200:
                 res_json = resp.json()
                 if res_json.get("code") == 200:
@@ -168,7 +131,6 @@ async def get_note_data(url: str) -> Optional[Dict[str, Any]]:
                     logger.error(f"API 返回错误: {res_json.get('msg')}")
             else:
                 logger.error(f"API 状态码错误: {resp.status_code}")
-                
         except Exception as e:
             logger.error(f"网络请求错误: {e}")
             return None
